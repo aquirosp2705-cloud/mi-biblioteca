@@ -45,6 +45,7 @@ guardan **solo en ese iPad**.
 | `modernos.json` | Lista curada de libros modernos verificados |
 | `libros/*.txt` | El texto completo de cada libro clásico |
 | `icono.png` | Ícono para la pantalla de inicio |
+| `herramientas/` | Los programas que arman el catálogo (ver `herramientas/LEEME.md`) |
 
 ## Licencias
 

@@ -481,12 +481,21 @@ async function abrirLector(b){
   $('#lecTexto').innerHTML = `<div class="lec-cuerpo" id="lecCuerpo">${formatear(txt)}</div>`;
   const cont = $('#lecTexto');
   const p = E.prog[b.id];
-  requestAnimationFrame(() => {
-    if (p && p.p > 0.005) cont.scrollTop = p.p * (cont.scrollHeight - cont.clientHeight);
+  // Vuelve a donde se quedó. No dependemos solo de requestAnimationFrame porque
+  // no se dispara si la pestaña está en segundo plano.
+  let colocado = false;
+  const colocar = () => {
+    if (colocado) return;
+    const alto = cont.scrollHeight - cont.clientHeight;
+    if (alto <= 0) return;                       // todavía sin maquetar
+    colocado = true;
+    if (p && p.p > 0.005) cont.scrollTop = p.p * alto;
     actualizarProgreso();
-    setTimeout(actualizarProgreso, 200);
-    setTimeout(actualizarProgreso, 800);
-  });
+  };
+  requestAnimationFrame(colocar);
+  setTimeout(colocar, 60);
+  setTimeout(colocar, 400);
+  setTimeout(actualizarProgreso, 1000);
 }
 function actualizarProgreso(){
   if (!LEC) return;
