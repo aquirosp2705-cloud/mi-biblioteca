@@ -483,7 +483,8 @@ async function abrirLector(b){
   requestAnimationFrame(() => {
     if (p && p.p > 0.005) cont.scrollTop = p.p * (cont.scrollHeight - cont.clientHeight);
     actualizarProgreso();
-    setTimeout(actualizarProgreso, 150);
+    setTimeout(actualizarProgreso, 200);
+    setTimeout(actualizarProgreso, 800);
   });
 }
 function actualizarProgreso(){
