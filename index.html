@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Mi Biblioteca">
+<meta name="theme-color" content="#f7f3ec">
+<link rel="apple-touch-icon" href="icono.png">
+<link rel="manifest" href="manifest.json">
+<title>Mi Biblioteca</title>
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<header>
+  <div class="wrap barra">
+    <div class="logo"><i>📚</i> Mi Biblioteca</div>
+    <button class="iconbtn" id="bBuscar" aria-label="Buscar">🔍</button>
+    <button class="iconbtn" id="bTema" aria-label="Modo noche">🌙</button>
+  </div>
+  <div class="buscador" id="cajaBuscar">
+    <div class="wrap" style="padding:0">
+      <div class="campo">
+        <span>🔍</span>
+        <input id="qInput" type="search" placeholder="Título, autor o tema…" autocomplete="off">
+        <button class="iconbtn" id="bCerrarBuscar" style="width:28px;height:28px">✕</button>
+      </div>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs"></nav>
+</header>
+
+<main class="wrap">
+  <section id="s-inicio" class="on"></section>
+  <section id="s-generos"></section>
+  <section id="s-autores"></section>
+  <section id="s-mia"></section>
+  <section id="s-resultados"></section>
+  <section id="s-genero"></section>
+</main>
+
+<footer class="wrap">
+  <div>Textos completos cortesía de <b>Project Gutenberg</b> (dominio público) · Libros modernos en préstamo gratuito de <b>Internet Archive / Open Library</b>.</div>
+  <div style="margin-top:8px;opacity:.75">Todo el contenido de esta app es de acceso legal y gratuito.</div>
+</footer>
+
+<div class="velo" id="velo"></div>
+<div class="ficha" id="ficha"><div class="asa"></div><div class="ficha-in" id="fichaIn"></div></div>
+
+<div class="lector" id="lector">
+  <div class="lec-prog" id="lecProg"></div>
+  <div class="lec-top" id="lecTop"><div class="wrap lec-fila">
+    <button class="iconbtn" id="lecCerrar">✕</button>
+    <div class="tt" id="lecTit"></div>
+    <button class="iconbtn" id="lecIndice" title="Indice">&#9776;</button>
+    <button class="iconbtn" id="lecMarca" title="Guardar marcador">&#128278;</button>
+  </div></div>
+  <div class="lec-texto" id="lecTexto"></div>
+  <div class="lec-bot" id="lecBot"><div class="wrap">
+    <div class="ctrl">
+      <button id="fMenos">A−</button><button id="fMas">A+</button>
+      <button data-lec="claro">Claro</button><button data-lec="sepia">Sepia</button><button data-lec="noche">Noche</button>
+      <button id="bTipo">Letra</button>
+    </div>
+    <div style="text-align:center;font-size:12.5px;opacity:.7;margin-top:8px" id="lecPct"></div>
+  </div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
