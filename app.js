@@ -450,6 +450,7 @@ function parrafos(txt){
 function formatear(txt){
   txt = txt.replace(/^Title:[\s\S]{0,400}?Markdown Content:\s*/, '');  // por si viene de proxy
   txt = txt.replace(/\r\n/g, '\n');
+  txt = txt.replace(/<\/?(pre|body|html|head|div|span)[^>]*>/gi, '');   // restos de marcado
   // separa el aviso legal de Project Gutenberg del libro en si
   let nota = '';
   const mIni = txt.match(/\*\*\*\s*START OF (?:THE|THIS) PROJECT GUTENBERG[^\n]*\n/i);
