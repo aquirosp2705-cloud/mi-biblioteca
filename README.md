@@ -25,6 +25,19 @@ Negocios y economía · Clásicos imprescindibles
 Además: filtro de **lectura fácil** (libros cortos que se terminan en una o dos
 sentadas), búsqueda por título y autor, e índice de autores.
 
+## Biblioteca portátil (sin internet)
+
+La app funciona sin conexión:
+
+- **La app se guarda sola** en el iPad la primera vez que se abre, así que abre aunque
+  no haya internet (lo hace `sw.js`).
+- **Los libros se descargan** con el botón *"Descargar los N que faltan"* en la pestaña
+  **Mi estantería**. Los 164 libros ocupan unos 72 MB y se bajan en pocos minutos.
+  Se puede parar a la mitad y seguir después: no se repite lo ya bajado.
+- También se puede descargar libro por libro desde su ficha.
+
+Lo guardado, los favoritos y el punto donde quedó la lectura viven **solo en ese iPad**.
+
 ## Cómo se usa en el iPad
 
 1. Abrir la dirección de la app en Safari.
@@ -44,6 +57,7 @@ guardan **solo en ese iPad**.
 | `catalogo.json` | Ficha de cada libro clásico |
 | `modernos.json` | Lista curada de libros modernos verificados |
 | `libros/*.txt` | El texto completo de cada libro clásico |
+| `sw.js` | Hace que funcione sin internet |
 | `icono.png` | Ícono para la pantalla de inicio |
 | `herramientas/` | Los programas que arman el catálogo (ver `herramientas/LEEME.md`) |
 

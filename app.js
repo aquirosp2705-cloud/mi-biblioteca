@@ -301,12 +301,56 @@ function pintarMia(){
   const bloque = (t, arr, vacio) => arr.length
     ? `<div class="fila-tit"><h2>${t}</h2></div>${rejilla(arr)}`
     : `<div class="fila-tit"><h2>${t}</h2></div><div class="vacio" style="padding:26px">${vacio}</div>`;
+  const pendientes = LIBROS.filter(b => !E.desc.includes(b.id));
+  const mbTotal = Math.round(LIBROS.reduce((a,b)=>a+b.chars,0) / 1048576);
+  const mbFalta = Math.round(pendientes.reduce((a,b)=>a+b.chars,0) / 1048576);
   $('#s-mia').innerHTML = `<h1 class="titulo">Mi estantería</h1>
     <p class="sub">Todo se guarda en este iPad. Nadie más lo ve.</p>
+    <div class="aviso" style="border-left-color:var(--verde)">
+      <b>Llevar la biblioteca conmigo.</b> Descarga los ${LIBROS.length} libros al iPad
+      y podrás leerlos en el avión, en la playa o sin datos. Ocupan unos ${mbTotal} MB.
+      ${desc.length ? `<br>Ya tienes <b>${desc.length}</b> guardados.` : ''}
+      <div style="margin-top:12px" id="zonaTodo">
+        ${pendientes.length
+          ? `<button class="btn" style="max-width:320px" id="bTodo">⬇️ Descargar los ${pendientes.length} que faltan (${mbFalta} MB)</button>`
+          : '<b style="color:var(--verde)">✓ Biblioteca completa en este iPad</b>'}
+      </div>
+    </div>
     ${bloque('📖 Leyendo ahora', leyendo, 'Aún no empiezas ningún libro.')}
     ${bloque('❤️ Favoritos', favs, 'Marca libros con el corazón para verlos aquí.')}
     ${bloque('⬇️ Descargados (sin internet)', desc, 'Descarga libros para leerlos sin conexión.')}
     ${bloque('✅ Terminados', fin, 'Los libros que completes aparecerán aquí.')}`;
+
+  const bt = $('#bTodo');
+  if (bt) bt.onclick = () => descargarTodo(pendientes);
+}
+
+/* ---------- llevarse toda la biblioteca ---------- */
+let bajandoTodo = false;
+async function descargarTodo(pendientes){
+  if (bajandoTodo){ bajandoTodo = false; return; }
+  bajandoTodo = true;
+  const zona = $('#zonaTodo');
+  let hechos = 0, fallos = 0;
+  for (const b of pendientes){
+    if (!bajandoTodo) break;
+    if (zona) zona.innerHTML = `<b>Descargando ${hechos+1} de ${pendientes.length}…</b>
+      <div class="barrita" style="height:6px;margin:10px 0">
+        <i style="width:${Math.round(hechos/pendientes.length*100)}%"></i></div>
+      <div style="font-size:13px">${esc(b.t)}</div>
+      <button class="chip" style="margin-top:10px" id="bParar">Parar</button>`;
+    const parar = $('#bParar');
+    if (parar) parar.onclick = () => { bajandoTodo = false; };
+    const txt = await traerTexto(b);
+    if (txt && await DB.set(b.id, txt)){
+      if (!E.desc.includes(b.id)) E.desc.unshift(b.id);
+      hechos++; guardar();
+    } else { fallos++; }
+  }
+  bajandoTodo = false;
+  toast(fallos ? `Se guardaron ${hechos}. ${fallos} no se pudieron bajar.`
+               : `Listo: ${hechos} libros guardados en el iPad`);
+  pintarMia();
 }
 
 /* ---------- BUSCAR ---------- */
@@ -623,3 +667,8 @@ document.addEventListener('keydown', ev => {
 });
 
 arrancar();
+
+/* ---------- funcionar sin internet ---------- */
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
