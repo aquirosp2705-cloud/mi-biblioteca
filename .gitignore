@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 catalogo.json.bak
 *.tmp
+prueba/
