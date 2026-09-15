@@ -91,7 +91,7 @@ def limpiar(t):
         t = t[:m.end()]
     return t.strip() + '\n'
 
-total, final, saltados = 0, [], 0
+total, final, saltados, fallos_red = 0, [], 0, 0
 for i, b in enumerate(sel, 1):
     if total > TOPE_MB * 1024 * 1024:
         print('  (tope de tamano alcanzado)'); break
@@ -101,7 +101,9 @@ for i, b in enumerate(sel, 1):
     else:
         txt = bajar(b['txt'])
         if not txt or len(txt) < 3000:
-            saltados += 1; continue
+            saltados += 1; fallos_red += 1
+            print(f"    no se pudo bajar: {b['t'][:50]}", flush=True)
+            continue
         txt = limpiar(txt)
         open(ruta, 'w', encoding='utf-8').write(txt)
     n = len(txt.encode('utf-8'))
@@ -117,14 +119,39 @@ for i, b in enumerate(sel, 1):
     if i % 30 == 0:
         print(f"  [{i}/{len(sel)}] {len(final)} libros · {total/1048576:.1f} MB", flush=True)
 
-json.dump(final, open(os.path.join(DEST, 'catalogo.json'), 'w', encoding='utf-8'),
-          ensure_ascii=False, separators=(',', ':'))
+# cuantos libros habia antes, para no empobrecer la biblioteca por accidente
+ruta_cat = os.path.join(DEST, 'catalogo.json')
+antes = 0
+if os.path.exists(ruta_cat):
+    try:
+        antes = len(json.load(open(ruta_cat, encoding='utf-8')))
+    except Exception:
+        antes = 0
 
-# limpia textos que quedaron fuera del catalogo
+if antes and len(final) < antes * 0.9:
+    print()
+    print(f'*** AVISO: saldrian {len(final)} libros cuando antes habia {antes}.')
+    print('*** No se toca nada. Revisa la conexion a internet y vuelve a intentarlo.')
+    sys.exit(1)
+
+# guardamos copia del catalogo anterior y escribimos de forma segura
+if os.path.exists(ruta_cat):
+    open(ruta_cat + '.bak', 'w', encoding='utf-8').write(open(ruta_cat, encoding='utf-8').read())
+tmp = ruta_cat + '.tmp'
+json.dump(final, open(tmp, 'w', encoding='utf-8'), ensure_ascii=False, separators=(',', ':'))
+os.replace(tmp, ruta_cat)
+
+# limpia textos que sobraron -- SOLO si la descarga fue limpia
 vivos = {f"{b['id']}.txt" for b in final}
-for f in os.listdir(LIB):
-    if f.endswith('.txt') and f not in vivos:
-        os.remove(os.path.join(LIB, f))
+sobrantes = [f for f in os.listdir(LIB) if f.endswith('.txt') and f not in vivos]
+if fallos_red:
+    print()
+    print(f'*** {fallos_red} libros no se pudieron bajar (internet).')
+    print(f'*** Por seguridad NO se borro ningun libro ({len(sobrantes)} quedan de mas).')
+else:
+    for f in sobrantes:
+        try: os.remove(os.path.join(LIB, f))
+        except OSError as e: print('   no se pudo borrar', f, e)
 
 c = defaultdict(lambda: [0, 0])
 for b in final:
