@@ -5,11 +5,12 @@
  *  - La app (html, js, css, catálogos) se pide primero a internet, para que las
  *    mejoras lleguen siempre; si no hay conexión, se usa lo guardado.
  */
-const VERSION = 'biblioteca-v2';
+const VERSION = 'biblioteca-v3';
 const BASE = new URL('./', self.location).pathname;
 const ESENCIALES = [
   BASE, BASE + 'index.html', BASE + 'app.js', BASE + 'estilo.css',
   BASE + 'catalogo.json', BASE + 'modernos.json', BASE + 'abiertos.json',
+  BASE + 'mas_libros.json',
   BASE + 'icono.png', BASE + 'manifest.json',
 ];
 

@@ -18,6 +18,26 @@ Dos tipos de libros:
    su web: unos son de lectura libre y otros se prestan gratis por 1 hora
    renovable, igual que en una biblioteca pública.
 
+## Si un libro no está
+
+Busca cualquier título y la app responde por niveles:
+
+1. **En tu biblioteca** — los que ya tienes, se leen al momento.
+2. **Gratis, para añadir** — otros 787 libros de dominio público (628 en español) que
+   no venían incluidos. Se abren igual; la primera vez se traen de internet y quedan
+   guardados para siempre.
+3. **Modernos, en préstamo** — lo que Internet Archive presta gratis.
+4. **Cómo conseguirlo** — si no hay nada gratis: el **precio real de hoy en Apple Books**
+   (consultado en vivo, en dólares), enlaces a otras bibliotecas gratuitas en español
+   (Cervantes, Elejandría, Gutenberg, Archive) y a otras tiendas.
+
+Y si ya compraste el libro, puedes **subirlo** en EPUB o TXT desde *Mi estantería*: se
+lee aquí igual que los demás y se queda **solo en tu iPad**.
+
+> En Ecuador no existe todavía ninguna biblioteca pública que preste libros electrónicos
+> actuales por internet — se comprobó una por una. El préstamo de Internet Archive es
+> hoy la mejor opción gratuita.
+
 ## Géneros
 
 Fábulas y moralejas · Romántico · Crecimiento personal · Liderazgo y equipos ·

@@ -72,6 +72,11 @@ const COLORES = ['#3f5d4a','#7a2f2f','#4a5568','#6b4423','#2f4858','#5c3a4e','#3
 const colorDe = s => COLORES[Math.abs([...String(s)].reduce((a,c)=>a*31+c.charCodeAt(0)|0,7)) % COLORES.length];
 
 let LIBROS = [], PORGEN = {}, AUTORES = [], MODERNOS = {}, ABIERTOS = {};
+let EXTRA = [];        // gratis en Gutenberg, se traen cuando se piden
+let MIOS = [];         // libros que subió la dueña, solo en este aparato
+const buscarPorId = id => LIBROS.find(b => b.id == id)
+                       || MIOS.find(b => b.id == id)
+                       || EXTRA.find(b => b.id == id);
 
 /* =========================================================
    TARJETAS
@@ -129,7 +134,7 @@ function pintarInicio(){
   const leyendo = Object.entries(E.prog)
     .filter(([id,p]) => p.p > 0.005 && p.p < 0.985)
     .sort((a,b) => b[1].fecha - a[1].fecha)
-    .map(([id]) => LIBROS.find(l => l.id == id)).filter(Boolean).slice(0,12);
+    .map(([id]) => buscarPorId(id)).filter(Boolean).slice(0,12);
 
   if (leyendo.length){
     h += `<div class="fila-tit"><h2>Seguir leyendo</h2></div>` + carrusel(leyendo);
@@ -292,7 +297,7 @@ function verAutor(nombre){
 
 /* ---------- MI ESTANTERIA ---------- */
 function pintarMia(){
-  const porId = id => LIBROS.find(l => l.id == id);
+  const porId = buscarPorId;
   const leyendo = Object.entries(E.prog).filter(([,p])=>p.p>0.005&&p.p<0.985)
     .sort((a,b)=>b[1].fecha-a[1].fecha).map(([id])=>porId(id)).filter(Boolean);
   const favs = E.fav.map(porId).filter(Boolean);
@@ -319,10 +324,28 @@ function pintarMia(){
     ${bloque('📖 Leyendo ahora', leyendo, 'Aún no empiezas ningún libro.')}
     ${bloque('❤️ Favoritos', favs, 'Marca libros con el corazón para verlos aquí.')}
     ${bloque('⬇️ Descargados (sin internet)', desc, 'Descarga libros para leerlos sin conexión.')}
-    ${bloque('✅ Terminados', fin, 'Los libros que completes aparecerán aquí.')}`;
+    ${bloque('✅ Terminados', fin, 'Los libros que completes aparecerán aquí.')}
+    <div class="fila-tit"><h2>📖 Mis libros</h2></div>
+    <div class="aviso">Si ya tienes un libro en <b>EPUB</b> o <b>TXT</b>, súbelo y se leerá
+      aquí igual que los demás. Se guarda <b>solo en este iPad</b>: no se publica en
+      internet ni lo ve nadie más. Úsalo con libros que compraste o que son libres.
+      <div style="margin-top:12px">
+        <button class="btn" style="max-width:280px" id="bSubir">📤 Subir un libro mío</button>
+        <input type="file" id="fSubir" accept=".epub,.txt,application/epub+zip,text/plain" hidden>
+      </div>
+    </div>
+    ${MIOS.length ? `<div class="rejilla">${MIOS.map(tarjeta).join('')}</div>
+      <p class="sub" style="margin-top:12px">Para quitar uno, ábrelo y usa
+        <b>Quitar de este iPad</b>.</p>`
+      : '<div class="vacio" style="padding:20px">Todavía no has subido ninguno.</div>'}`;
 
   const bt = $('#bTodo');
   if (bt) bt.onclick = () => descargarTodo(pendientes);
+  const bs = $('#bSubir'), fs = $('#fSubir');
+  if (bs && fs){
+    bs.onclick = () => fs.click();
+    fs.onchange = () => { const a = fs.files[0]; fs.value = ''; subirLibro(a); };
+  }
 }
 
 /* ---------- llevarse toda la biblioteca ---------- */
@@ -353,28 +376,50 @@ async function descargarTodo(pendientes){
   pintarMia();
 }
 
-/* ---------- BUSCAR ---------- */
-let tBusca;
+/* ---------- BUSCAR ----------
+   Responde por niveles: lo que ya tienes, lo que es gratis, lo que se presta,
+   y si no hay nada, cómo conseguirlo. */
+let tBusca, ULTIMA_BUSQUEDA = '';
 async function buscar(q){
   const f = sinAcento(q).trim();
   if (f.length < 2){ verSeccion('inicio'); return; }
-  const res = LIBROS.filter(b => sinAcento(b.t).includes(f) || sinAcento(b.a).includes(f))
-    .sort((a,b)=>b.d-a.d).slice(0,80);
+  ULTIMA_BUSQUEDA = q;
+  const casa = alFrente(f, LIBROS.filter(b => coincide(b, f))).slice(0,40);
+  const gratis = alFrente(f, EXTRA.filter(b => coincide(b, f))).slice(0,30);
+
   $('#s-resultados').innerHTML = `<h1 class="titulo">“${esc(q)}”</h1>
-    <p class="sub">${res.length} ${res.length===1?'resultado':'resultados'} en los libros completos</p>
-    ${rejilla(res, 'Ningún clásico coincide.<br>Mira abajo en libros modernos.')}
-    <div class="fila-tit"><h2>Libros modernos (préstamo gratuito)</h2></div>
-    <div id="vivo"><div class="cargando"><div class="spin"></div><div>Buscando…</div></div></div>`;
+    ${casa.length ? `<div class="fila-tit"><h2>📗 En tu biblioteca</h2></div>
+      <p class="sub">Se leen aquí mismo, ahora.</p>${rejilla(casa)}` : ''}
+    ${gratis.length ? `<div class="fila-tit"><h2>🎁 Gratis, para añadir</h2></div>
+      <p class="sub">Son de dominio público. Se abren aquí mismo: la primera vez hay que
+      traerlos de internet y tarda unos segundos.</p>${rejilla(gratis)}` : ''}
+    <div class="fila-tit"><h2>🔓 Modernos, en préstamo o compra</h2></div>
+    <div id="vivo"><div class="cargando"><div class="spin"></div><div>Buscando…</div></div></div>
+    <div id="conseguir"></div>`;
   verSeccion('resultados');
-  try{
-    const libros = await olBuscar(q, 24);
-    const c = $('#vivo');
-    if (c) c.innerHTML = libros.length
-      ? `<div class="rejilla">${libros.map(tarjetaOL).join('')}</div>`
-      : '<div class="vacio">Sin títulos modernos para esa búsqueda.</div>';
-  }catch(e){
-    const c = $('#vivo'); if (c) c.innerHTML = '<div class="vacio">Sin conexión con Internet Archive.</div>';
-  }
+
+  let modernos = [];
+  try { modernos = await olBuscar(q, 24); } catch(e){ modernos = null; }
+  const c = $('#vivo');
+  if (c) c.innerHTML = modernos === null
+    ? '<div class="vacio">No se pudo conectar con Internet Archive. Revisa la conexión.</div>'
+    : modernos.length
+      ? `<div class="rejilla">${modernos.map(tarjetaOL).join('')}</div>`
+      : '<div class="vacio" style="padding:26px">Ninguna biblioteca lo presta gratis.</div>';
+
+  pintarConseguir(q, casa.length + gratis.length + (modernos ? modernos.length : 0));
+}
+function coincide(b, f){
+  return sinAcento(b.t).includes(f) || sinAcento(b.a).includes(f);
+}
+function alFrente(f, arr){
+  // primero los que empiezan por lo buscado, luego los más leídos
+  return arr.sort((a,b) => {
+    const ea = sinAcento(a.t).startsWith(f), eb = sinAcento(b.t).startsWith(f);
+    if (ea !== eb) return ea ? -1 : 1;
+    if ((a.l==='es') !== (b.l==='es')) return a.l==='es' ? -1 : 1;
+    return b.d - a.d;
+  });
 }
 
 /* =========================================================
@@ -406,10 +451,14 @@ function abrirFicha(b){
     <div class="acciones">
       <button class="btn" id="bLeer">${p&&p.p>0.01?'Continuar leyendo':'Leer ahora'}</button>
       <button class="btn sec" id="bFav">${fav?'❤️':'🤍'}</button>
-      <button class="btn sec" id="bBajar">${bajado?'✓ Sin internet':'⬇️ Descargar'}</button>
+      ${b.propio
+        ? '<button class="btn sec" id="bQuitar">🗑️ Quitar</button>'
+        : `<button class="btn sec" id="bBajar">${bajado?'✓ Sin internet':'⬇️ Descargar'}</button>`}
     </div>
     <p style="font-size:12.5px;color:var(--tinta2);margin:18px 0 0;line-height:1.6">
-      Texto de dominio público cortesía de <a href="${esc(b.url)}" target="_blank" rel="noopener">Project Gutenberg</a>.</p>`;
+      ${b.propio
+        ? 'Libro tuyo, guardado solo en este iPad.'
+        : `Texto de dominio público cortesía de <a href="${esc(b.url)}" target="_blank" rel="noopener">Project Gutenberg</a>.`}</p>`;
   $('#velo').classList.add('on'); $('#ficha').classList.add('on');
 
   $('#bLeer').onclick = () => { cerrarFicha(); abrirLector(b); };
@@ -418,7 +467,11 @@ function abrirFicha(b){
     if (i<0){ E.fav.unshift(b.id); toast('Guardado en favoritos'); } else { E.fav.splice(i,1); toast('Quitado de favoritos'); }
     guardar(); ev.currentTarget.textContent = E.fav.includes(b.id)?'❤️':'🤍'; refrescar();
   };
-  $('#bBajar').onclick = async ev => {
+  const bq = $('#bQuitar');
+  if (bq) bq.onclick = () => {
+    if (confirm('¿Quitar «' + b.t + '» de este iPad?')){ cerrarFicha(); borrarMio(b.id); }
+  };
+  if ($('#bBajar')) $('#bBajar').onclick = async ev => {
     const btn = ev.currentTarget;
     if (E.desc.includes(b.id)){ await DB.del(b.id); E.desc = E.desc.filter(x=>x!=b.id); guardar();
       btn.textContent = '⬇️ Descargar'; toast('Borrado del iPad'); refrescar(); return; }
@@ -464,15 +517,26 @@ function abrirFichaOL(b){
 async function traerTexto(b){
   const local = await DB.get(b.id);
   if (local) return local;
-  const fuentes = [];
-  if (b.local) fuentes.push(b.local);
-  if (b.txt)   fuentes.push('https://r.jina.ai/' + b.txt);
-  for (const u of fuentes){
+  // los de la biblioteca vienen del propio sitio; los demás hay que traerlos de fuera
+  if (b.local){
     try{
-      const r = await fetch(u);
-      if (!r.ok) continue;
-      const t = await r.text();
-      if (t && t.length > 500) return t;
+      const r = await fetch(b.local);
+      if (r.ok){ const t = await r.text(); if (t && t.length > 500) return t; }
+    }catch(e){}
+  }
+  if (b.txt){
+    try{
+      const r = await fetch('https://r.jina.ai/' + b.txt);
+      if (r.ok){
+        const t = await r.text();
+        if (t && t.length > 500){
+          // se guarda para que la próxima vez abra al instante y sin internet
+          if (await DB.set(b.id, t) && !E.desc.includes(b.id)){
+            E.desc.unshift(b.id); guardar();
+          }
+          return t;
+        }
+      }
     }catch(e){}
   }
   return null;
@@ -548,10 +612,12 @@ function actualizarProgreso(){
   const p = max > 0 ? Math.min(1, Math.max(0, c.scrollTop / max)) : 0;
   $('#lecProg').style.width = (p*100) + '%';
   $('#lecPct').textContent = Math.round(p*100) + '% leído';
+  // Guardamos el id ahora: medio segundo después el libro puede estar ya cerrado.
+  const id = LEC.id;
   clearTimeout(tGuarda);
   tGuarda = setTimeout(() => {
-    E.prog[LEC.id] = {p, fecha: Date.now()};
-    if (p > 0.985 && !E.fin.includes(LEC.id)){ E.fin.unshift(LEC.id); toast('¡Libro terminado! 🎉'); }
+    E.prog[id] = {p, fecha: Date.now()};
+    if (p > 0.985 && !E.fin.includes(id)){ E.fin.unshift(id); toast('¡Libro terminado! 🎉'); }
     guardar();
   }, 500);
 }
@@ -597,6 +663,8 @@ async function arrancar(){
   }
   try { MODERNOS = await (await fetch('modernos.json')).json(); } catch(e) { MODERNOS = {}; }
   try { ABIERTOS = await (await fetch('abiertos.json')).json(); } catch(e) { ABIERTOS = {}; }
+  try { EXTRA = await (await fetch('mas_libros.json')).json(); } catch(e) { EXTRA = []; }
+  MIOS = await leerMios();
   indexar(); pintarTabs('inicio'); pintarInicio(); pintarGeneros(); pintarAutores(); pintarMia();
 }
 
@@ -614,7 +682,7 @@ document.addEventListener('click', ev => {
   }
   else if (t.dataset.gen)   { abrirGenero(t.dataset.gen); }
   else if (t.dataset.autor) { cerrarFicha(); verAutor(t.dataset.autor); }
-  else if (t.dataset.id)    { const b = LIBROS.find(l => l.id == t.dataset.id); if (b) abrirFicha(b); }
+  else if (t.dataset.id)    { const b = buscarPorId(t.dataset.id); if (b) abrirFicha(b); }
   else if (t.dataset.ol)    { try{ abrirFichaOL(JSON.parse(t.dataset.ol)); }catch(e){} }
   else if (t.dataset.lec)   { E.lec = t.dataset.lec; guardar(); aplicarLectura(); }
   else if (t.dataset.f){
@@ -671,4 +739,250 @@ arrancar();
 /* ---------- funcionar sin internet ---------- */
 if ('serviceWorker' in navigator) {
   addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+
+/* =========================================================
+   MIS LIBROS — los que sube la dueña desde el iPad.
+   Se quedan SOLO en este aparato: nunca se suben a internet.
+   ========================================================= */
+async function leerMios(){ return (E.mios || []).slice(); }
+
+function limpiarNombre(nombre){
+  return nombre.replace(/\.(txt|epub)$/i, '').replace(/[_]+/g, ' ')
+               .replace(/\s{2,}/g, ' ').trim().slice(0, 120) || 'Libro sin título';
+}
+
+/* --- lector de ZIP mínimo, sin librerías (un .epub es un .zip) --- */
+async function abrirZip(buffer){
+  const dv = new DataView(buffer), bytes = new Uint8Array(buffer);
+  let fin = -1;
+  for (let i = bytes.length - 22; i >= 0 && i > bytes.length - 66000; i--){
+    if (dv.getUint32(i, true) === 0x06054b50){ fin = i; break; }
+  }
+  if (fin < 0) throw new Error('No parece un archivo EPUB válido');
+  const nEntradas = dv.getUint16(fin + 10, true);
+  let p = dv.getUint32(fin + 16, true);
+  const entradas = new Map();
+  const dec = new TextDecoder();
+  for (let i = 0; i < nEntradas; i++){
+    if (dv.getUint32(p, true) !== 0x02014b50) break;
+    const metodo = dv.getUint16(p + 10, true);
+    const compr  = dv.getUint32(p + 20, true);
+    const nLen   = dv.getUint16(p + 28, true);
+    const eLen   = dv.getUint16(p + 30, true);
+    const cLen   = dv.getUint16(p + 32, true);
+    const offset = dv.getUint32(p + 42, true);
+    const nombre = dec.decode(bytes.subarray(p + 46, p + 46 + nLen));
+    entradas.set(nombre, { metodo, compr, offset });
+    p += 46 + nLen + eLen + cLen;
+  }
+  return {
+    lista: () => [...entradas.keys()],
+    async leer(nombre){
+      const e = entradas.get(nombre);
+      if (!e) return null;
+      const nLen = dv.getUint16(e.offset + 26, true);
+      const eLen = dv.getUint16(e.offset + 28, true);
+      const ini  = e.offset + 30 + nLen + eLen;
+      const crudo = bytes.subarray(ini, ini + e.compr);
+      if (e.metodo === 0) return dec.decode(crudo);
+      if (e.metodo !== 8) throw new Error('Compresión no soportada');
+      const flujo = new Blob([crudo]).stream()
+        .pipeThrough(new DecompressionStream('deflate-raw'));
+      return dec.decode(await new Response(flujo).arrayBuffer());
+    },
+  };
+}
+
+function textoDeHtml(html){
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll('script,style,head').forEach(n => n.remove());
+  doc.querySelectorAll('h1,h2,h3,h4,p,div,li,br').forEach(n => n.after('\n\n'));
+  return (doc.body ? doc.body.textContent : '')
+    .replace(/[ \t\u00a0]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n').trim();
+}
+
+async function leerEpub(archivo){
+  const zip = await abrirZip(await archivo.arrayBuffer());
+  const cont = await zip.leer('META-INF/container.xml');
+  if (!cont) throw new Error('El EPUB no tiene índice');
+  const xml = new DOMParser().parseFromString(cont, 'application/xml');
+  const rutaOpf = xml.querySelector('rootfile')?.getAttribute('full-path');
+  if (!rutaOpf) throw new Error('El EPUB no dice dónde está su contenido');
+  const carpeta = rutaOpf.includes('/') ? rutaOpf.slice(0, rutaOpf.lastIndexOf('/') + 1) : '';
+  const opf = new DOMParser().parseFromString(await zip.leer(rutaOpf), 'application/xml');
+
+  const meta = e => opf.getElementsByTagName('dc:' + e)[0]?.textContent?.trim()
+                 || opf.getElementsByTagName(e)[0]?.textContent?.trim() || '';
+  const titulo = meta('title') || limpiarNombre(archivo.name);
+  const autor  = meta('creator') || 'Autor desconocido';
+
+  const rutas = {};
+  for (const it of opf.getElementsByTagName('item')){
+    rutas[it.getAttribute('id')] = it.getAttribute('href');
+  }
+  const orden = [...opf.getElementsByTagName('itemref')]
+    .map(r => rutas[r.getAttribute('idref')]).filter(Boolean);
+  const piezas = orden.length ? orden
+    : zip.lista().filter(n => /\.x?html?$/i.test(n)).map(n => n.replace(carpeta, ''));
+
+  const partes = [];
+  for (const href of piezas){
+    const limpio = decodeURIComponent(href.split('#')[0]);
+    const html = await zip.leer(carpeta + limpio) || await zip.leer(limpio);
+    if (html) { const t = textoDeHtml(html); if (t.length > 40) partes.push(t); }
+  }
+  const texto = partes.join('\n\n');
+  if (texto.length < 200) throw new Error('No se pudo sacar el texto de este EPUB');
+  return { titulo, autor, texto };
+}
+
+async function subirLibro(archivo){
+  if (!archivo) return;
+  const nombre = archivo.name.toLowerCase();
+  if (nombre.endsWith('.pdf')){
+    toast('Los PDF no se pueden leer aquí todavía. Prueba con EPUB o TXT.');
+    return;
+  }
+  if (archivo.size > 40 * 1024 * 1024){ toast('El archivo es demasiado grande (más de 40 MB)'); return; }
+
+  toast('Abriendo el archivo…');
+  let datos;
+  try {
+    if (nombre.endsWith('.epub')) datos = await leerEpub(archivo);
+    else {
+      const texto = await archivo.text();
+      if (texto.trim().length < 200) throw new Error('El archivo está vacío');
+      datos = { titulo: limpiarNombre(archivo.name), autor: 'Libro mío', texto };
+    }
+  } catch(e){
+    toast('No se pudo leer: ' + (e.message || 'archivo no válido'));
+    return;
+  }
+
+  const id = 'mio' + Date.now().toString(36);
+  if (!await DB.set(id, datos.texto)){ toast('No hubo espacio para guardarlo'); return; }
+  const libro = {
+    id, t: datos.titulo, a: datos.autor, ay: '', l: 'es', g: [], d: 0,
+    sum: '', chars: datos.texto.length, facil: datos.texto.length < 200000,
+    cov: '', url: '', propio: true,
+  };
+  E.mios = [libro, ...(E.mios || [])];
+  if (!E.desc.includes(id)) E.desc.unshift(id);
+  guardar();
+  MIOS = await leerMios();
+  toast('Guardado: ' + datos.titulo);
+  pintarMia();
+}
+
+async function borrarMio(id){
+  await DB.del(id);
+  E.mios = (E.mios || []).filter(b => b.id !== id);
+  E.desc = E.desc.filter(x => x !== id);
+  delete E.prog[id];
+  guardar();
+  MIOS = await leerMios();
+  toast('Libro quitado de este iPad');
+  pintarMia();
+}
+
+/* =========================================================
+   ¿CÓMO CONSIGO ESTE LIBRO? — cuando no aparece gratis.
+   Todas las direcciones fueron comprobadas una por una.
+   ========================================================= */
+const BIBLIOTECAS = [
+  {n:'Biblioteca Cervantes', d:'La gran biblioteca digital en español. Gratis.',
+   u:t => 'https://www.cervantesvirtual.com/buscador/?q=' + encodeURIComponent(t)},
+  {n:'Elejandría', d:'Clásicos y autores que ceden su obra. Gratis, en EPUB.',
+   u:t => 'https://www.elejandria.com/busqueda?q=' + encodeURIComponent(t)},
+  {n:'Internet Archive', d:'Millones de libros. Algunos se leen, otros se prestan.',
+   u:t => 'https://archive.org/search?query=' + encodeURIComponent(t)},
+  {n:'Project Gutenberg', d:'Dominio público, en varios idiomas.',
+   u:t => 'https://www.gutenberg.org/ebooks/search/?query=' + encodeURIComponent(t)},
+];
+const TIENDAS = [
+  {n:'Google Play Libros', d:'Se lee en el navegador del iPad.',
+   u:t => 'https://play.google.com/store/search?q=' + encodeURIComponent(t) + '&c=books&gl=EC'},
+  {n:'Kindle de Amazon', d:'Necesita la app Kindle instalada.',
+   u:t => 'https://www.amazon.com/s?k=' + encodeURIComponent(t) + '&i=digital-text'},
+  {n:'Buscalibre Ecuador', d:'Sobre todo en papel, con entrega en Ecuador.',
+   u:t => 'https://www.buscalibre.ec/libros/search?q=' + encodeURIComponent(t)},
+];
+
+async function preciosApple(q){
+  try{
+    const u = 'https://itunes.apple.com/search?term=' + encodeURIComponent(q) +
+              '&country=EC&media=ebook&limit=6';
+    const d = await (await fetch(u)).json();
+    const vistos = new Set();
+    return (d.results || []).filter(x => {
+      const k = (x.trackName||'').toLowerCase();
+      return x.trackName && !vistos.has(k) && vistos.add(k);
+    }).slice(0,4).map(x => ({
+      t: x.trackName, a: x.artistName || '',
+      precio: typeof x.price === 'number' ? x.price : null,
+      url: x.trackViewUrl || '',
+    }));
+  }catch(e){ return null; }
+}
+
+function pintarConseguir(q, encontrados){
+  const c = $('#conseguir');
+  if (!c) return;
+  const enlaces = (lista) => lista.map(x => `<a class="btn sec" style="text-align:left;display:block"
+      href="${esc(x.u(q))}" target="_blank" rel="noopener">
+      <b>${esc(x.n)}</b><br><span style="font-size:12.5px;opacity:.75">${esc(x.d)}</span></a>`).join('');
+
+  c.innerHTML = `
+    <div class="fila-tit"><h2>🛒 Cómo conseguirlo</h2></div>
+    <div class="aviso">
+      ${encontrados
+        ? 'Si nada de lo de arriba te sirvió, estas son las otras formas <b>legales</b> de conseguirlo.'
+        : '<b>No lo encontramos gratis en ninguna biblioteca.</b> Pasa con los libros recientes: todavía tienen derechos de autor, así que nadie puede regalarlos.'}
+      <div id="precios" style="margin-top:14px"></div>
+
+      <div style="margin-top:18px"><b>Buscarlo gratis en otras bibliotecas</b>
+        <div style="font-size:12.5px;margin:4px 0 10px">Vale la pena mirar: si el libro
+          tiene más de 80 años, suele estar libre en alguna de estas.</div>
+        <div style="display:flex;flex-direction:column;gap:8px">${enlaces(BIBLIOTECAS)}</div>
+      </div>
+
+      <div style="margin-top:18px"><b>Comprarlo en otras tiendas</b>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">${enlaces(TIENDAS)}</div>
+      </div>
+
+      <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--linea)">
+        <b>¿Ya lo tienes comprado?</b> Si tienes el archivo en <b>EPUB</b> o <b>TXT</b>,
+        súbelo y se leerá aquí igual que los demás, con tu letra y tu modo noche.
+        Se queda solo en tu iPad.
+        <div style="margin-top:10px"><button class="chip" data-tab="mia">Subir mi libro →</button></div>
+      </div>
+
+      <div style="margin-top:16px;font-size:12.5px;opacity:.8;line-height:1.5">
+        Nota: en Ecuador todavía no hay ninguna biblioteca pública que preste libros
+        electrónicos actuales por internet. Lo comprobamos una por una. El préstamo
+        gratuito de Internet Archive es hoy la mejor opción.
+      </div>
+    </div>`;
+
+  // el precio de verdad, hoy, en dólares
+  preciosApple(q).then(res => {
+    const z = $('#precios');
+    if (!z) return;
+    if (!res || !res.length){ z.innerHTML = ''; return; }
+    const gratis = res.filter(x => x.precio === 0);
+    z.innerHTML = `<b>${gratis.length ? '🎉 ¡Hay una edición gratis en Apple Books!' : 'Cuánto cuesta hoy en Apple Books'}</b>
+      <div style="font-size:12.5px;margin:4px 0 10px">La tienda del propio iPad: se
+        abre y se lee ahí mismo, sin instalar nada.</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${res.map(x => `<a class="btn sec" style="text-align:left;display:flex;gap:10px;align-items:center"
+            href="${esc(x.url)}" target="_blank" rel="noopener">
+            <span style="flex:1;min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.t)}</b>
+              <span style="font-size:12.5px;opacity:.75">${esc(x.a)}</span></span>
+            <b style="color:${x.precio === 0 ? 'var(--verde)' : 'var(--acento)'};white-space:nowrap">${
+              x.precio === 0 ? 'Gratis' : x.precio == null ? '' : '$' + x.precio.toFixed(2)}</b>
+          </a>`).join('')}
+      </div>`;
+  });
 }
