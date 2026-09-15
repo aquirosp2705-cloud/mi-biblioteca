@@ -12,6 +12,17 @@ PROYECTO = os.path.dirname(AQUI)                        # carpeta de la app
 os.makedirs(DATOS, exist_ok=True)
 # ---------------------------------------------------------------------------
 
+def guardar_json(datos, ruta, **kw):
+    """Escribe sin riesgo: primero a un temporal y luego reemplaza. Si se corta a
+       la mitad (se cierra la ventana, se va la luz), el archivo bueno sigue ahi."""
+    tmp = ruta + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(datos, f, **kw)
+    if os.path.getsize(tmp) < 2:
+        os.remove(tmp); raise IOError('no se escribio nada en ' + ruta)
+    os.replace(tmp, ruta)
+
+
 DEST = PROYECTO
 
 LISTA = {
@@ -164,6 +175,5 @@ if os.path.exists(ruta):
         vistos = {b['id'] for b in salida.get(g, [])}
         salida.setdefault(g, []).extend(b for b in arr if b['id'] not in vistos)
 
-json.dump(salida, open(ruta, 'w', encoding='utf-8'),
-          ensure_ascii=False, separators=(',', ':'))
+guardar_json(salida, ruta, ensure_ascii=False, separators=(',', ':'))
 print('\nTOTAL modernos:', sum(len(v) for v in salida.values()))

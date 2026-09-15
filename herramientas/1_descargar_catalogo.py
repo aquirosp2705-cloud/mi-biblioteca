@@ -7,6 +7,17 @@ PROYECTO = os.path.dirname(AQUI)                        # carpeta de la app
 os.makedirs(DATOS, exist_ok=True)
 # ---------------------------------------------------------------------------
 
+def guardar_json(datos, ruta, **kw):
+    """Escribe sin riesgo: primero a un temporal y luego reemplaza. Si se corta a
+       la mitad (se cierra la ventana, se va la luz), el archivo bueno sigue ahi."""
+    tmp = ruta + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(datos, f, **kw)
+    if os.path.getsize(tmp) < 2:
+        os.remove(tmp); raise IOError('no se escribio nada en ' + ruta)
+    os.replace(tmp, ruta)
+
+
 OUT = DATOS
 RAW = os.path.join(OUT,'raw.json')
 def get(url, tries=3, espera=3):
@@ -25,7 +36,7 @@ if os.path.exists(RAW):
     print('reanudando con', len(libros), flush=True)
 
 def salvar():
-    json.dump(list(libros.values()), open(RAW,'w',encoding='utf-8'), ensure_ascii=False)
+    guardar_json(list(libros.values()), RAW, ensure_ascii=False)
 
 if len(libros) < 900:
     print('== catalogo en espanol ==', flush=True)
@@ -51,7 +62,7 @@ for q in QUERIES:
     if d:
         for b in d['results'][:30]: libros.setdefault(b['id'], b)
         hechas.add(q); print('  ', q, '->', len(libros), flush=True)
-        salvar(); json.dump(list(hechas), open(os.path.join(OUT,'hechas.json'),'w'))
+        salvar(); guardar_json(list(hechas), os.path.join(OUT,'hechas.json'))
     else:
         print('   (saltado)', q, flush=True)
     time.sleep(2.5)

@@ -10,6 +10,17 @@ PROYECTO = os.path.dirname(AQUI)                        # carpeta de la app
 os.makedirs(DATOS, exist_ok=True)
 # ---------------------------------------------------------------------------
 
+def guardar_json(datos, ruta, **kw):
+    """Escribe sin riesgo: primero a un temporal y luego reemplaza. Si se corta a
+       la mitad (se cierra la ventana, se va la luz), el archivo bueno sigue ahi."""
+    tmp = ruta + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(datos, f, **kw)
+    if os.path.getsize(tmp) < 2:
+        os.remove(tmp); raise IOError('no se escribio nada en ' + ruta)
+    os.replace(tmp, ruta)
+
+
 BIB = DATOS
 raw = json.load(open(os.path.join(BIB, 'raw.json'), encoding='utf-8'))
 
@@ -127,4 +138,4 @@ print('clasificados:', len(out), '| espanol:', sum(1 for x in out if x['l'] == '
 for g, n in c.most_common():
     esn = sum(1 for x in out if g in x['g'] and x['l'] == 'es')
     print(f'  {g:13s} {n:4d}  (es: {esn})')
-json.dump(out, open(os.path.join(BIB, 'clasificados.json'), 'w', encoding='utf-8'), ensure_ascii=False)
+guardar_json(out, os.path.join(BIB, 'clasificados.json'), ensure_ascii=False)
