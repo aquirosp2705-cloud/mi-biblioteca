@@ -98,6 +98,14 @@ def clasificar(b):
         if 'clasicos' not in gs: gs.append('clasicos')
     return gs
 
+def anios(nace, muere):
+    """'1812-1870', '750 a.C.-650 a.C.', 'n. 1878', 'm. 406 a.C.'  (nunca '43-17')."""
+    uno = lambda y: (f'{abs(y)} a.C.' if y < 0 else str(y)) if y else ''
+    if nace and muere: return f'{uno(nace)}-{uno(muere)}'
+    if nace:  return f'n. {uno(nace)}'
+    if muere: return f'm. {uno(muere)}'
+    return ''
+
 def texto_url(b):
     f = b.get('formats', {})
     for k in ('text/plain; charset=utf-8', 'text/plain; charset=us-ascii', 'text/plain'):
@@ -125,7 +133,7 @@ for b in raw:
         nombre = (no.strip() + ' ' + ap.strip()).strip()
     out.append({
         'id': b['id'], 't': b['title'].strip(), 'a': nombre,
-        'ay': (f"{a0.get('birth_year') or ''}-{a0.get('death_year') or ''}").strip('-'),
+        'ay': anios(a0.get('birth_year'), a0.get('death_year')),
         'l': lang, 'g': gs, 'd': b.get('download_count', 0),
         'sum': (b.get('summaries') or [''])[0][:600],
         'txt': texto_url(b), 'cov': b.get('formats', {}).get('image/jpeg', ''),

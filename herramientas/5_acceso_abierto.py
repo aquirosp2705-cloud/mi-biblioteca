@@ -97,5 +97,17 @@ for gen, consultas in CONSULTAS.items():
     for b in salida[gen][:6]:
         print(f"   {'ES' if b['es'] else '  '} {b['anio']}  {b['t'][:58]}")
 
-guardar_json(salida, os.path.join(DEST, 'abiertos.json'), ensure_ascii=False, separators=(',', ':'))
+# Si OAPEN contesto mal ese dia, no vaciamos un estante: conservamos lo anterior.
+ruta = os.path.join(DEST, 'abiertos.json')
+if os.path.exists(ruta):
+    try:
+        previo = json.load(open(ruta, encoding='utf-8'))
+    except Exception:
+        previo = {}
+    for gen, antes in previo.items():
+        if len(salida.get(gen, [])) < len(antes) / 2:
+            print(f'   OAPEN dio pocos resultados para {gen}: se conserva lo que ya habia')
+            salida[gen] = antes
+
+guardar_json(salida, ruta, ensure_ascii=False, separators=(',', ':'))
 print('\nTOTAL acceso abierto:', sum(len(v) for v in salida.values()))

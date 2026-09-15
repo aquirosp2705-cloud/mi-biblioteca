@@ -8,18 +8,19 @@ app** — solo cuando se quieran agregar más libros.
 1. Abrir `actualizar.py` con el Bloc de notas.
 2. Cambiar el número de `TOPE_MB` (es cuánto puede pesar la carpeta de libros):
 
-   | TOPE_MB | Libros aproximados |
+   | TOPE_MB | Libros |
    |---|---|
-   | 72 | 164 — lo que hay hoy |
-   | 120 | unos 250 |
-   | 200 | unos 360 — entra todo el español ya clasificado |
+   | 200 | **325 — lo que hay hoy**, ya entró todo el español clasificado |
+   | 260 | unos 400 (empieza a entrar material en inglés) |
+
+   Para pasar de ahí ya no alcanza con subir el número: hay que **buscar libros
+   nuevos**, poniendo `BAJAR_CATALOGO = True` en ese mismo archivo (tarda ~20 min más)
+   o agregando temas a la lista `QUERIES` de `1_descargar_catalogo.py`.
 
 3. Guardar y hacer **doble clic en `actualizar.bat`**.
-4. Cuando termine, publicar los cambios desde la carpeta del proyecto:
+4. Después, **doble clic en `publicar.bat`** para que llegue al iPad.
 
-```bash
-git add -A && git commit -m "Mas libros" && git push
-```
+La biblioteca se ve en: **https://aquirosp2705-cloud.github.io/mi-biblioteca/**
 
 La primera vez tarda: tiene que bajar el texto de cada libro nuevo. Los que ya están
 descargados no se vuelven a bajar.
@@ -35,6 +36,7 @@ descargados no se vuelven a bajar.
 | `5_acceso_abierto.py` | Busca libros académicos de acceso abierto y escribe `abiertos.json` | ~1 min |
 | `icono.py` | Vuelve a dibujar el ícono de la app | segundos |
 | `actualizar.py` | Ejecuta todos los anteriores en orden | |
+| `publicar.bat` | Sube los cambios a internet (doble clic) | 1-5 min |
 
 El paso 1 está **apagado** por defecto en `actualizar.py` (`BAJAR_CATALOGO = False`),
 porque la lista de Gutenberg ya está guardada y casi no cambia. Solo se enciende si se
@@ -51,8 +53,9 @@ quiere buscar libros nuevos que hayan publicado.
 
 ## Si algo sale mal
 
-- La carpeta `datos/` se puede reconstruir: encender `BAJAR_CATALOGO = True` y correr
-  `actualizar.bat` otra vez (tarda, pero no se pierde nada).
+- Si se borra la carpeta `datos/`, **no hay que volver a descargar nada**: está
+  guardada en el proyecto. Se recupera al instante con `git checkout -- herramientas/datos`
+  desde la carpeta del proyecto.
 - Mientras no se haga `git push`, la app publicada en internet sigue como estaba.
 - Para deshacer todo lo hecho desde el último `push`, desde la carpeta del proyecto:
   `git checkout -- .`

@@ -5,12 +5,13 @@ Ejecuta los pasos en orden y deja la app lista para publicar.
 Se puede correr con doble clic en 'actualizar.bat' (en esta misma carpeta).
 
 Para AGREGAR MAS LIBROS: sube el numero de TOPE_MB aqui abajo y vuelve a correrlo.
-  72 MB  -> unos 157 libros   (lo que hay hoy)
- 200 MB  -> unos 360 libros   (entra todo el espanol ya clasificado)
+ 200 MB  -> 325 libros  (lo que hay hoy: ya entro todo el espanol clasificado)
+ 260 MB  -> unos 400   (empieza a entrar material en ingles)
+Para pasar de ahi hay que buscar libros nuevos: pon BAJAR_CATALOGO = True.
 """
 import os, subprocess, sys, time
 
-TOPE_MB = 72          # <-- cuanto puede pesar la carpeta 'libros'
+TOPE_MB = 200         # <-- cuanto puede pesar la carpeta 'libros'
 BAJAR_CATALOGO = False  # True = vuelve a preguntarle a Gutenberg que hay (tarda ~20 min)
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -22,7 +23,8 @@ PASOS = [
     ('5_acceso_abierto.py',     'Buscar libros academicos de acceso abierto',    True),
 ]
 
-entorno = dict(os.environ, TOPE_MB=str(TOPE_MB), PYTHONIOENCODING='utf-8')
+entorno = dict(os.environ, TOPE_MB=str(TOPE_MB), PYTHONIOENCODING='utf-8',
+               FORZAR_CATALOGO='1' if BAJAR_CATALOGO else '0')
 fallos = []
 
 for archivo, descripcion, activo in PASOS:

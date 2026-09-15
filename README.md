@@ -2,6 +2,8 @@
 
 App de lectura para iPad. Libros completos, gratis y legales.
 
+**https://aquirosp2705-cloud.github.io/mi-biblioteca/**
+
 ## Qué es
 
 Una biblioteca personal que se abre en Safari desde el iPad (o desde cualquier
@@ -32,7 +34,7 @@ La app funciona sin conexión:
 - **La app se guarda sola** en el iPad la primera vez que se abre, así que abre aunque
   no haya internet (lo hace `sw.js`).
 - **Los libros se descargan** con el botón *"Descargar los N que faltan"* en la pestaña
-  **Mi estantería**. Los 164 libros ocupan unos 72 MB y se bajan en pocos minutos.
+  **Mi estantería**. Los 325 libros ocupan unos 132 MB y se bajan en pocos minutos.
   Se puede parar a la mitad y seguir después: no se repite lo ya bajado.
 - También se puede descargar libro por libro desde su ficha.
 
@@ -59,7 +61,7 @@ guardan **solo en ese iPad**.
 | `libros/*.txt` | El texto completo de cada libro clásico |
 | `sw.js` | Hace que funcione sin internet |
 | `icono.png` | Ícono para la pantalla de inicio |
-| `herramientas/` | Los programas que arman el catálogo (ver `herramientas/LEEME.md`) |
+| `herramientas/` | Los programas que arman el catálogo y `publicar.bat` (ver `herramientas/LEEME.md`) |
 
 ## Licencias
 

@@ -38,7 +38,10 @@ if os.path.exists(RAW):
 def salvar():
     guardar_json(list(libros.values()), RAW, ensure_ascii=False)
 
-if len(libros) < 900:
+# Si el usuario pidio expresamente buscar libros nuevos, se baja aunque ya haya datos.
+forzar = os.environ.get('FORZAR_CATALOGO') == '1'
+espanoles = sum(1 for b in libros.values() if 'es' in b.get('languages', []))
+if forzar or espanoles < 900:
     print('== catalogo en espanol ==', flush=True)
     url = 'https://gutendex.com/books/?languages=es'
     while url:
